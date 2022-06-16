@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Task, TaskStatus } from './task.model';
 import { v4 as uuid } from 'uuid';
@@ -13,23 +14,23 @@ export class TasksService {
   }
 
   getTaskWithFilters(filterDto: GetTaskFilterDto): Task[] {
-    const {status, search} = filterDto;
+    const { status, search } = filterDto;
 
     let tasks = this.getAllTasks();
 
     //do somthing with status
     if (status) {
-        tasks = tasks.filter((task) => task.status === status);
+      tasks = tasks.filter((task) => task.status === status);
     }
 
     //do somthing with search
     if (search) {
-        tasks = tasks.filter((task) => {
-            if(task.description.includes(search) || task.title.includes(search)){
-                return true;
-            }
-            return false;
-        });
+      tasks = tasks.filter((task) => {
+        if (task.description.includes(search) || task.title.includes(search)) {
+          return true;
+        }
+        return false;
+      });
     }
 
     //return the  result
@@ -37,11 +38,17 @@ export class TasksService {
   }
 
   getTaskById(id: string): Task {
-    return this.tasks.find((task) => task.id === id);
+    const found = this.tasks.find((task) => task.id === id);
+
+    if (!found) {
+      throw new NotFoundException();
+    }
+    return found;
   }
 
   deleteTask(id: string): void {
-    this.tasks = this.tasks.filter((task) => task.id !== id);
+    const found = this.getTaskById(id);
+    this.tasks = this.tasks.filter((task) => task.id !== found.id);
   }
 
   updateTask(id: string, status: TaskStatus): Task {
@@ -51,14 +58,14 @@ export class TasksService {
   }
 
   createTask(createTaskDto: CreateTaskDto): Task {
-    const {title, description} = createTaskDto;
+    const { title, description } = createTaskDto;
     const task: Task = {
-        id: uuid(),
-        title,
-        description,
-        status: TaskStatus.OPEN,
+      id: uuid(),
+      title,
+      description,
+      status: TaskStatus.OPEN,
     };
-    
+
     this.tasks.push(task);
 
     return task;
